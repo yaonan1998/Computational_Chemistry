@@ -1,1 +1,1 @@
-# Running Molecular Dynamics simulations by LAMMPS & analyzing corresponding results.
+# Running Molecular Dynamics Simulations by LAMMPS & Conducting Analyses.
