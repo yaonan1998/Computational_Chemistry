@@ -184,7 +184,7 @@ def mkfile_modelxyz(dir_run: str, model: str, mol_names: List[str], mol_nums: Li
         fout.write('output ' + modelxyz + '\n')
         for i in range(len(mol_names)):
             fout.write('structure ' +
-                       os.path.join(init['PublicFilesDir'], 'LAMMPS', args.xyzlmp, f'{mol_names[i]}.xyz') + '\n')
+                       os.path.join(init['PublicFilesDir'], args.xyzlmp, f'{mol_names[i]}.xyz') + '\n')
             fout.write('  number ' + mol_nums[i] + '\n')
             fout.write('  inside box 0.0 0.0 0.0 {l} {l} {l}\n'.format(l=box_size))
             fout.write('end structure\n')
@@ -215,7 +215,7 @@ def mkfile_data(dir_run: str, model: str, modelxyz_path: str,
     mols = []
     list_of_numbers = []
     for path, num in zip(
-            [os.path.join(init['PublicFilesDir'], 'LAMMPS', args.xyzlmp, i+'.lmp') for i in mol_names], mol_nums):
+            [os.path.join(init['PublicFilesDir'], args.xyzlmp, i+'.lmp') for i in mol_names], mol_nums):
         mols.append(LammpsData.from_file(path))
         list_of_numbers.append(int(num))
     coordinates = CombinedData.parse_xyz(modelxyz_path)
@@ -301,7 +301,7 @@ def modfile_inlammps(dir_run: str, in_template: str, model: str, compute_type: s
     to_replace['ComputeType'] = LammpsTemplate(compute_commands).substitute(**to_replace)
     for idx, item in enumerate(runtime):
         to_replace['Runtime' + str(idx)] = str(item)
-    intemp = os.path.join(init['PublicFilesDir'], 'LAMMPS', 'intemplate', in_template)
+    intemp = os.path.join(init['PublicFilesDir'], 'intemplate', in_template)
     with open(intemp, 'r') as fin:
         raw_content = fin.read()
     filled_content = LammpsTemplate(raw_content).substitute(**to_replace)
