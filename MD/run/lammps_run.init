@@ -12,7 +12,7 @@
   ],
   "expand_factor": [
     200,
-	200
+    200
   ],
   "parallel_run": 2,
   "temperature": [
@@ -20,13 +20,13 @@
     450.15
   ],
   "runtime":[
-    2000000,    # npt
-    500000,     # npt, heating
-    500000,     # npt
-    500000,     # npt, cooling
-    4000000,    # npt
-    2000000,    # nvt
-    5000000     # nvt, sampling
+    2000000,
+    500000,
+    500000,
+    500000,
+    4000000,
+    2000000,
+    5000000
   ],
   "compute_type": false
 }

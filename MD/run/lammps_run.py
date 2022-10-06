@@ -359,7 +359,7 @@ def submit_job(index: int) -> None:
     model, mol_names, mol_nums = def_model(model_info['composition'])
     model_info['model'] = model
     dir_run = os.path.join(args.path, '+'.join(mol_names) + '_' + '+'.join(mol_nums))
-    if para_run:
+    if para_run and para_run != 1:
         dirs_run = [dir_run + f'_{para_index + 1}' for para_index in range(para_run)]
     else:
         dirs_run = [dir_run]

@@ -11,9 +11,11 @@ this file is also provided in advance.
 
 &emsp;You can find these necessary files in `Computational_Chemistry/MD/run/pre_files/`.
 
-&emsp;If required files for new species are missing, you have to add them by yourself :).
+&emsp;If required files for new species are missing, you have to add them by yourself. :)
 * **Run**
 1. Please state the system information and simulation settings in `lammps_run.init`:
+
+&emsp;(NOTE: The following JSON file is ONLY for instructions, so it contains annotations starting with #.)
 ```text
 {
   # The directory where you put the preliminary files.
@@ -39,6 +41,7 @@ this file is also provided in advance.
   ],
   
   # The number of parallel runs for one system with different initial configurations.
+  # If only 1 run is required, you can index 1 or false.
   "parallel_run": 2,
   
   # The simulation and annealing temperature (unit=K).
@@ -63,7 +66,7 @@ this file is also provided in advance.
   "compute_type": false
 }
 ```
-2. Now you can submit MD jobs to the queue in supercomputer(e5/wx) by execute the following command:
+2. Now you can submit MD jobs to the queue in supercomputer(e5/wx) by executing the following command:
 ```shell
 python lammps_run.py --sc e5 --path `pwd` --intemp in.lammps --xyzlmp xyzlmp
 ```
