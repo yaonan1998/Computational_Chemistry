@@ -53,7 +53,8 @@ def density() -> Dict:
         'DMC': 1.063,
         'FEC': 1.454,
         'HFE':1.53,
-        'EA': 0.902
+        'EA': 0.902,
+        'DIPS': 0.81
     }
 
 
@@ -72,7 +73,8 @@ def molecular_weight() -> Dict:
         'DMC': 90.07,
         'FEC': 106.052,
         'HFE':232.07,
-        'EA': 88.105
+        'EA': 88.105,
+        'DIPS': 118.24
     }
 
 
