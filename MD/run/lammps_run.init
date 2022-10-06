@@ -1,4 +1,5 @@
 {
+  "PublicFilesDir": "/gpfs01/zhq_work/yn/PUBLIC_FILES/",
   "mol_ratio": [
     {
       "DME": 1.4,
@@ -12,5 +13,20 @@
   "expand_factor": [
     200,
 	200
-  ]
+  ],
+  "parallel_run": 2,
+  "temperature": [
+    298.15,
+    450.15
+  ],
+  "runtime":[
+    2000000,    # npt
+    500000,     # npt, heating
+    500000,     # npt
+    500000,     # npt, cooling
+    4000000,    # npt
+    2000000,    # nvt
+    5000000     # nvt, sampling
+  ],
+  "compute_type": false
 }

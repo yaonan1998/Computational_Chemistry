@@ -4,6 +4,7 @@ import scipy.constants as const
 import os
 import json
 import argparse
+import random
 import logging
 from pymatgen.io.lammps.data import LammpsData, CombinedData
 from typing import Dict, List, Tuple, Union
@@ -182,7 +183,8 @@ def mkfile_modelxyz(dir_run: str, model: str, mol_names: List[str], mol_nums: Li
         fout.write('filetype xyz\n')
         fout.write('output ' + modelxyz + '\n')
         for i in range(len(mol_names)):
-            fout.write('structure ' + os.path.join(PublicFilesDir, 'LAMMPS', args.xyzlmp, f'{mol_names[i]}.xyz') + '\n')
+            fout.write('structure ' +
+                       os.path.join(init['PublicFilesDir'], 'LAMMPS', args.xyzlmp, f'{mol_names[i]}.xyz') + '\n')
             fout.write('  number ' + mol_nums[i] + '\n')
             fout.write('  inside box 0.0 0.0 0.0 {l} {l} {l}\n'.format(l=box_size))
             fout.write('end structure\n')
@@ -212,7 +214,8 @@ def mkfile_data(dir_run: str, model: str, modelxyz_path: str,
     os.chdir(dir_run)
     mols = []
     list_of_numbers = []
-    for path, num in zip([os.path.join(PublicFilesDir, 'LAMMPS', args.xyzlmp, i+'.lmp') for i in mol_names], mol_nums):
+    for path, num in zip(
+            [os.path.join(init['PublicFilesDir'], 'LAMMPS', args.xyzlmp, i+'.lmp') for i in mol_names], mol_nums):
         mols.append(LammpsData.from_file(path))
         list_of_numbers.append(int(num))
     coordinates = CombinedData.parse_xyz(modelxyz_path)
@@ -222,39 +225,46 @@ def mkfile_data(dir_run: str, model: str, modelxyz_path: str,
     return data_path
 
 
-def simulation(simulation_fname: str = 'simulation.json') -> Tuple[float, float, List[int]]:
-    '''
-    Tailor the simulation temperature and runtime of the MD job.
-
-    Args:
-    - simulation_fname: Name of the json file containing temperature and runtime information.
-
-    Returns:
-    - temperature1: Temperature low bound.
-    - temperature2: Temperature high bound.
-    - runtime: Steps to run in each stage.
-    '''
-    path = os.path.join(PublicFilesDir, 'LAMMPS', 'intemplate', simulation_fname)
-    simul_info = load_json_file(path)
-    temperature1 = simul_info['TEMPERATURE1']
-    temperature2 = simul_info['TEMPERATURE2']
-    runtime = simul_info['RUNTIME']
-    return temperature1, temperature2, runtime
-
-
 def lammps_fix_commands(compute_type: str):
     '''
     Get related `compute` & `fix` commands of the given type.
 
     Args:
-    - compute_type: The compute keywords of the MD job, 0:None/1:dipole/2:pressure/3:msd.
+    - compute_type: The compute keywords of the MD job, na:None/dm:dipole moment/press:pressure/msd:msd/com:com.
 
     Returns:
     - commands: Lammps commands.
     '''
+    compute_command_info = {
+        "na": [
+            "\n"
+        ],
+        "dm": [
+            "compute dpall1 all chunk/atom molecule\n",
+            "compute dpall2 all dipole/chunk dpall1\n",
+            "fix dpall all ave/time 1000 1 1000 c_dpall2[*] file $$ModelName_dipole.out mode vector\n"
+        ],
+        "press": [
+            "variable pxy equal pxy\n",
+            "variable pxz equal pxz\n",
+            "variable pyz equal pyz\n",
+            "fix pressure all ave/time 1 1 1 v_pxy v_pxz v_pyz file $$ModelName_pressure.out\n"
+        ],
+        "msd": [
+            "group cation type $$CationType\n",
+            "compute cation1 cation chunk/atom molecule\n",
+            "compute cation2 cation msd/chunk cation1\n",
+            "group anion type $$AnionType\n",
+            "compute anion1 anion chunk/atom molecule\n",
+            "compute anion2 anion msd/chunk anion1\n",
+            "fix msdcation cation ave/time 1 1 1000 c_cation2[*] file Li_msd.out mode vector\n",
+            "fix msdanion anion ave/time 1 1 1000 c_anion2[*] file $$AnionName_msd.out mode vector\n"
+        ],
+        "com": [
+            "TOBEDETERMINED"
+        ]
+    }
     compute_command_list = []
-    command_path = os.path.join(PublicFilesDir, 'LAMMPS', 'intemplate', 'compute_commands')
-    compute_command_info = load_json_file(command_path)
     for c in compute_type.split():
         if c in compute_command_info:
             ccjoin = ''.join(compute_command_info[c])
@@ -282,7 +292,7 @@ def modfile_inlammps(dir_run: str, in_template: str, model: str, compute_type: s
     - compute_type: The compute keywords of the MD job, 0:None/1:dipole/2:pressure/3:msd.
     '''
     compute_commands = lammps_fix_commands(compute_type)
-    temperature1, temperature2, runtime = simulation('simulation.json')
+    temperature1, temperature2, runtime = init['temperature'][0], init['temperature'][1], init['runtime']
     to_replace = {
         'ModelName': model,
         'Temperature1': str(temperature1),
@@ -291,7 +301,7 @@ def modfile_inlammps(dir_run: str, in_template: str, model: str, compute_type: s
     to_replace['ComputeType'] = LammpsTemplate(compute_commands).substitute(**to_replace)
     for idx, item in enumerate(runtime):
         to_replace['Runtime' + str(idx)] = str(item)
-    intemp = os.path.join(PublicFilesDir, 'LAMMPS', 'intemplate', in_template)
+    intemp = os.path.join(init['PublicFilesDir'], 'LAMMPS', 'intemplate', in_template)
     with open(intemp, 'r') as fin:
         raw_content = fin.read()
     filled_content = LammpsTemplate(raw_content).substitute(**to_replace)
@@ -337,30 +347,39 @@ def submit_job(index: int) -> None:
     Args:
     - index: Index of MD jobs to be submitted.
     '''
+    mol_ratios = init['mol_ratio']
+    expand_factors = init['expand_factor']
+    para_run = init['parallel_run']
+    compute_type = init['compute_type']
+    if not compute_type:
+        compute_type = 'na'
     model_info = MDmodel_info(mol_ratios[index], expand_factors[index])
     for i, j in model_info.items():
         print(f'{i:30}{j}')
     model, mol_names, mol_nums = def_model(model_info['composition'])
     model_info['model'] = model
     dir_run = os.path.join(args.path, '+'.join(mol_names) + '_' + '+'.join(mol_nums))
-    if not os.path.exists(dir_run):
-        os.mkdir(dir_run)
-    modelxyz_path = mkfile_modelxyz(dir_run, model, mol_names, mol_nums,
-                                    float(np.around(model_info['box_size (unit: Angstrom)'], 2)))
-    mkfile_data(dir_run, model, modelxyz_path, mol_names, mol_nums)
-    modfile_inlammps(dir_run, args.intemp, model, '0')
-    mkfile_subscript(dir_run)
-    write_json_file(os.path.join(dir_run, 'model'), model_info)
+    if para_run:
+        dirs_run = [dir_run + f'_{para_index + 1}' for para_index in range(para_run)]
+    else:
+        dirs_run = [dir_run]
+    for dir_run in dirs_run:
+        if not os.path.exists(dir_run):
+            os.mkdir(dir_run)
+        modelxyz_path = mkfile_modelxyz(dir_run, model, mol_names, mol_nums,
+                                        float(np.around(model_info['box_size (unit: Angstrom)'], 2)),
+                                        random.randint(1, 1000))
+        mkfile_data(dir_run, model, modelxyz_path, mol_names, mol_nums)
+        modfile_inlammps(dir_run, args.intemp, model, compute_type)
+        mkfile_subscript(dir_run)
+        write_json_file(os.path.join(dir_run, 'model'), model_info)
 
 
 def main():
-    global mol_ratios
-    global expand_factors
+    global init
     init = load_json_file('lammps_run.init')
-    mol_ratios = init['mol_ratio']
-    expand_factors = init['expand_factor']
-    pool = Pool(len(mol_ratios))
-    pool.map(submit_job, range(len(mol_ratios)))
+    pool = Pool(len(init['mol_ratio']))
+    pool.map(submit_job, range(len(init['mol_ratio'])))
     pool.close()
     pool.join()
     # 1.4: 4.02 M, 3.8: 2.01 M, 8.2: 1.05 M
@@ -373,6 +392,5 @@ if __name__ == "__main__":
     parser.add_argument('--intemp', help='The name of the in.lammps template file', type=str, default=None)
     parser.add_argument('--xyzlmp', help='The name of the folder containing .xyz and .lmp files', type=str, default=None)
     args = parser.parse_args()
-    PublicFilesDir = '/gpfs01/zhq_work/yn/PUBLIC_FILES/'
     main()
 
