@@ -1,0 +1,16 @@
+{
+  "mol_ratio": [
+    {
+      "DME": 1.4,
+      "LiFSI": 1
+    },
+	{
+      "DME": 3.8,
+      "LiFSI": 1
+    }
+  ],
+  "expand_factor": [
+    200,
+	200
+  ]
+}

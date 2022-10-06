@@ -1,0 +1,26 @@
+{
+    "0": [
+        "\n"
+    ],
+    "1": [
+        "compute dpall1 all chunk/atom molecule\n",
+        "compute dpall2 all dipole/chunk dpall1\n",
+        "fix dpall all ave/time 1000 1 1000 c_dpall2[*] file $$ModelName_dipole.out mode vector\n"
+    ],
+    "2": [
+        "variable pxy equal pxy\n",
+        "variable pxz equal pxz\n",
+        "variable pyz equal pyz\n",
+        "fix pressure all ave/time 1 1 1 v_pxy v_pxz v_pyz file $$ModelName_pressure.out\n"
+    ],
+    "3": [
+        "group cation type $$CationType\n",
+        "compute cation1 cation chunk/atom molecule\n",
+        "compute cation2 cation msd/chunk cation1\n",
+        "group anion type $$AnionType\n",
+        "compute anion1 anion chunk/atom molecule\n",
+        "compute anion2 anion msd/chunk anion1\n",
+        "fix msdcation cation ave/time 1 1 1000 c_cation2[*] file Li_msd.out mode vector\n",
+        "fix msdanion anion ave/time 1 1 1000 c_anion2[*] file $$AnionName_msd.out mode vector\n"
+    ]
+}

@@ -1,0 +1,75 @@
+# input files in.filename-in.lammps
+# initializing
+units			real
+dimension		3
+processors		* * *
+newton			on
+boundary		p p p
+atom_style		full
+atom_modify		map yes
+
+# simulation settings
+pair_style		lj/cut/coul/long 12 12
+pair_modify		mix geometric tail yes
+bond_style		harmonic
+special_bonds		lj/coul 0.0 0.0 0.5
+angle_style		harmonic			
+dihedral_style		opls
+improper_style		cvff
+kspace_style		pppm 1.0e-4
+
+# system definition
+read_data		$$ModelName.data
+
+neighbor		2.0 bin
+neigh_modify		every 5 delay 0 check yes
+
+timestep		1	#real unit fs
+
+# run a simulation
+	#outputs
+thermo			1000
+thermo_style		custom step temp press pe vol
+
+	#simulation
+neigh_modify		every 1 delay 0 check yes
+minimize		1.0e-12 1.0e-12 10000 10000
+#neigh_modify		every 5 delay 0 check yes
+fix			1 all npt temp $$Temperature1 $$Temperature1 100 iso 1 1 1000
+run			$$Runtime0
+unfix			1
+write_data		$$ModelName_1.data
+fix			2 all npt temp $$Temperature1 $$Temperature2 100 iso 1 1 1000
+run			$$Runtime1
+unfix			2
+write_data		$$ModelName_2.data
+fix			3 all npt temp $$Temperature2 $$Temperature2 100 iso 1 1 1000
+run			$$Runtime2
+unfix			3
+write_data		$$ModelName_3.data
+fix			4 all npt temp $$Temperature2 $$Temperature1 100 iso 1 1 1000
+run			$$Runtime3
+unfix			4
+write_data		$$ModelName_4.data
+fix			5 all npt temp $$Temperature1 $$Temperature1 100 iso 1 1 1000
+run			$$Runtime4
+unfix			5
+write_data		$$ModelName_5.data
+fix			6 all nvt temp $$Temperature1 $$Temperature1 1000
+run			$$Runtime5
+unfix			6
+write_data		$$ModelName_6.data
+
+reset_timestep	0
+
+$$ComputeType
+
+dump			1 all custom 1000 $$ModelName.lammpstrj id type x y z
+dump			2 all custom 1000 $$ModelName_unwrapped.lammpstrj id type xu yu zu
+
+fix			7 all nvt temp $$Temperature1 $$Temperature1 1000
+run			$$Runtime6
+unfix			7
+
+write_data		$$ModelName_op.data
+write_restart		$$ModelName_op.restart
