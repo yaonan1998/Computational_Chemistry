@@ -44,6 +44,11 @@ this file is also provided in advance.
   # If only 1 run is required, you can index 1 or false.
   "parallel_run": 2,
   
+  # The seed keyword in Packmol.
+  # If set to false, default seed=1001 will be used.
+  # For parallel runs, the setting here will be ignored, and random seed between 1-1000 will be used.
+  "seed": false,
+  
   # The simulation and annealing temperature (unit=K).
   "temperature": [
     298.15,

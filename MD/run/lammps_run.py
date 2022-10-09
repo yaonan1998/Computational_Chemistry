@@ -352,6 +352,7 @@ def submit_job(index: int) -> None:
     mol_ratios = init['mol_ratio']
     expand_factors = init['expand_factor']
     para_run = init['parallel_run']
+    seed = init['seed']
     compute_type = init['compute_type']
     if not compute_type:
         compute_type = 'na'
@@ -368,9 +369,11 @@ def submit_job(index: int) -> None:
     for dir_run in dirs_run:
         if not os.path.exists(dir_run):
             os.mkdir(dir_run)
+        if len(dirs_run) > 1:
+            seed = random.randint(1, 1000)  # Ignore the 'seed' setting in .init file to ensure different seeds
         modelxyz_path = mkfile_modelxyz(dir_run, model, mol_names, mol_nums,
                                         float(np.around(model_info['box_size (unit: Angstrom)'], 2)),
-                                        random.randint(1, 1000))
+                                        seed)
         mkfile_data(dir_run, model, modelxyz_path, mol_names, mol_nums)
         modfile_inlammps(dir_run, args.intemp, model, compute_type)
         mkfile_subscript(dir_run)
